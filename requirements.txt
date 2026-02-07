@@ -1,0 +1,6 @@
+fastapi[standard-no-fastapi-cloud-cli]
+pydentic
+sqlalchemy
+psycopg2
+pwdlib[argon2, bcrypt]
+python-jose
