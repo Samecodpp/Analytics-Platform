@@ -1,20 +1,23 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from ..core.security import hash_password
 from .dependencies import get_db
-from app.models.users import Users
+from ..schemas.jwt import JWTPayload, Token
 from ..schemas.user import UserRegister, UserResponse
-
+from ..services.token import create_jwt
+from app.models.users import Users
+from ..core.security import hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 def register(creds: UserRegister, db: Annotated[Session, Depends(get_db)]):
     if db.query(Users).filter(creds.email == Users.email).first():
-        raise HTTPException(status_code=400, detail="User with this e-mail already registred!")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="User with this e-mail already registred!")
 
     hashed_pwd = hash_password(creds.password)
     creds_dump = creds.model_dump(exclude={"password"})
@@ -26,10 +29,25 @@ def register(creds: UserRegister, db: Annotated[Session, Depends(get_db)]):
 
     return user
 
-@router.post("/login", status_code=status.HTTP_201_CREATED)
+@router.post("/login", status_code=status.HTTP_200_OK, response_model=Token)
 def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
           db: Annotated[Session, Depends(get_db)]):
-    ###########################
-    # TODO: REALIZE LOGIN LOGIC
-    ###########################
-    return {"acces_token": ..., "refresh_token": ..., "type_token": "bearer"}
+
+    user = db.query(Users).filter(
+        or_(
+            creds.username == Users.email,
+            creds.username == Users.username
+        )
+    ).first()
+
+    if not user or not verify_password(creds.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Username/password is invalid!")
+
+    acces_token_payload = JWTPayload.create_access_token(user.id).model_dump(mode="json")
+    refresh_token_payload = JWTPayload.create_refresh_token(user.id).model_dump(mode="json")
+
+    access_token = create_jwt(acces_token_payload)
+    refresh_token = create_jwt(refresh_token_payload)
+
+    return Token(access_token=access_token, refresh_token=refresh_token)

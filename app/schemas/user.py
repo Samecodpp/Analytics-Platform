@@ -4,8 +4,11 @@ from datetime import datetime
 class UserBase(BaseModel):
     email: EmailStr
 
-class UserCreds(UserBase):
+class UserRegister(UserBase):
     password: str
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
 
     @field_validator("password")
     @classmethod
@@ -13,6 +16,7 @@ class UserCreds(UserBase):
         if len(pwd) < 8:
             raise ValueError("Password must be at least 8 characters long")
         return pwd
+
 
 class UserResponse(UserBase):
     id: int
