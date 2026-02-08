@@ -1,7 +1,7 @@
 from typing import Literal
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, model_serializer
 
 from ..core.config import settings
 
@@ -14,7 +14,7 @@ class JWTPayload(BaseModel):
     scope: str | None = None
 
     @classmethod
-    def create_access_token(cls, user_id: int) -> JWTPayload:
+    def create_access_token(cls, user_id: int | str) -> JWTPayload:
         now = datetime.now(timezone.utc)
         return cls(
             sub=str(user_id),
@@ -24,7 +24,7 @@ class JWTPayload(BaseModel):
         )
 
     @classmethod
-    def create_refresh_token(cls, user_id: int) -> JWTPayload:
+    def create_refresh_token(cls, user_id: int | str) -> JWTPayload:
         now = datetime.now(timezone.utc)
         return cls(
             sub=str(user_id),
@@ -34,7 +34,21 @@ class JWTPayload(BaseModel):
             jti=uuid4()
         )
 
+    @model_serializer
+    def serialize_model(self) -> dict:
+        data = {
+            "sub": self.sub,
+            "type": self.type,
+            "iat": int(self.iat.timestamp()),
+            "exp": int(self.exp.timestamp()),
+        }
+        if self.jti is not None:
+            data["jti"] = str(self.jti)
+        if self.scope is not None:
+            data["scope"] = self.scope
+        return data
+
+
 class Token(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"

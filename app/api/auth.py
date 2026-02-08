@@ -1,15 +1,20 @@
+from math import e
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from urllib import response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+
 from .dependencies import get_db
 from ..schemas.jwt import JWTPayload, Token
 from ..schemas.user import UserRegister, UserResponse
-from ..services.token import create_jwt
+from ..services.token import create_jwt, decode_jwt
 from app.models.users import Users
 from ..core.security import hash_password, verify_password
+from jose import ExpiredSignatureError, JWTError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -31,7 +36,7 @@ def register(creds: UserRegister, db: Annotated[Session, Depends(get_db)]):
 
 @router.post("/login", status_code=status.HTTP_200_OK, response_model=Token)
 def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
-          db: Annotated[Session, Depends(get_db)]):
+          db: Annotated[Session, Depends(get_db)], response: Response):
 
     user = db.query(Users).filter(
         or_(
@@ -44,10 +49,38 @@ def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Username/password is invalid!")
 
-    acces_token_payload = JWTPayload.create_access_token(user.id).model_dump(mode="json")
-    refresh_token_payload = JWTPayload.create_refresh_token(user.id).model_dump(mode="json")
+    acces_token_payload = JWTPayload.create_access_token(user.id).model_dump()
+    refresh_token_payload = JWTPayload.create_refresh_token(user.id).model_dump()
 
     access_token = create_jwt(acces_token_payload)
     refresh_token = create_jwt(refresh_token_payload)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False, #Prod HTTPS -> True
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
+        path="/"
+    )
+    return Token(access_token=access_token)
 
-    return Token(access_token=access_token, refresh_token=refresh_token)
+@router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Token)
+def refresh_token(refresh_token: Annotated[str | None, Cookie()] = None):
+    if not refresh_token:
+        raise HTTPException(status_code=401)
+
+    try:
+        body = decode_jwt(refresh_token)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if body.get('type') != "refresh":
+        raise HTTPException(status_code=401)
+
+    payload = JWTPayload.create_access_token(user_id=body['sub']).model_dump()
+    new_access_token = create_jwt(payload)
+
+    return Token(access_token=new_access_token)
