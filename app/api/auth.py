@@ -6,14 +6,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-
 from .dependencies import get_db
 from ..schemas.jwt import JWTPayload, Token
 from ..schemas.user import UserRegister, UserResponse
-from ..services.token import create_jwt, decode_jwt
+from ..core.security import create_jwt, decode_jwt
 from app.models.users import Users
-from ..core.security import hash_password, verify_password
+from ..core.security import hash_password, verify_password, get_cookie_refresh_config
 from jose import ExpiredSignatureError, JWTError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -54,15 +52,9 @@ def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
 
     access_token = create_jwt(acces_token_payload)
     refresh_token = create_jwt(refresh_token_payload)
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=False, #Prod HTTPS -> True
-        samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
-        path="/"
-    )
+
+    cookie_params = get_cookie_refresh_config()
+    response.set_cookie("refresh_token", refresh_token, **cookie_params)
     return Token(access_token=access_token)
 
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Token)
