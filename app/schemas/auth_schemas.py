@@ -1,9 +1,21 @@
 from typing import Literal
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
-from pydantic import UUID4, BaseModel, model_serializer
+from pydantic import UUID4, BaseModel, EmailStr, model_serializer, field_validator
 
 from ..core.config import settings
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, pwd: str) -> str:
+        if len(pwd) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        return pwd
 
 class JWTPayload(BaseModel):
     sub: str
@@ -52,3 +64,4 @@ class JWTPayload(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+

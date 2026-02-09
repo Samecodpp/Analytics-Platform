@@ -1,4 +1,3 @@
-from math import e
 from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
@@ -6,17 +5,16 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from .dependencies import get_db
-from ..schemas.jwt import JWTPayload, Token
-from ..schemas.user import UserRegister, UserResponse
+from ..schemas.auth_schemas import JWTPayload, Token, RegisterRequest
 from ..core.security import create_jwt, decode_jwt
-from app.models.users import Users
+from app.models.users_model import Users
 from ..core.security import hash_password, verify_password, get_cookie_refresh_config
 from jose import ExpiredSignatureError, JWTError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
-def register(creds: UserRegister, db: Annotated[Session, Depends(get_db)]):
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register(creds: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
     if db.query(Users).filter(creds.email == Users.email).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="User with this e-mail already registred!")
@@ -28,8 +26,6 @@ def register(creds: UserRegister, db: Annotated[Session, Depends(get_db)]):
     db.add(user)
     db.commit()
     db.refresh(user)
-
-    return user
 
 @router.post("/login", status_code=status.HTTP_200_OK, response_model=Token)
 def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -55,6 +51,11 @@ def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
     cookie_params = get_cookie_refresh_config()
     response.set_cookie("refresh_token", refresh_token, **cookie_params)
     return Token(access_token=access_token)
+
+@router.delete("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response):
+    response.delete_cookie("refresh_token")
+    return
 
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Token)
 def refresh_token(refresh_token: Annotated[str | None, Cookie()] = None):

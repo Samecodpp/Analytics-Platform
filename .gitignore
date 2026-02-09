@@ -6,3 +6,4 @@ venv/
 .idea/
 .vscode/
 alembic/versions/*.pyc
+drawio_diagrams/
