@@ -55,7 +55,6 @@ def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
 @router.delete("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response):
     response.delete_cookie("refresh_token")
-    return
 
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Token)
 def refresh_token(refresh_token: Annotated[str | None, Cookie()] = None):
