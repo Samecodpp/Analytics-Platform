@@ -1,6 +1,8 @@
 from pwdlib import PasswordHash
 from jose import jwt
 from .config import settings
+import secrets
+import hashlib
 
 pwd_hash = PasswordHash.recommended()
 
@@ -25,3 +27,5 @@ def get_cookie_refresh_config() -> dict:
         "path": "/"
     }
 
+def generate_api_key() -> str:
+    return secrets.token_urlsafe(32)
