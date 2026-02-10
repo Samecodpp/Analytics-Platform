@@ -4,7 +4,6 @@ from ..schemas.user_schemas import User, UserUpdate
 from ..models.users_model import Users
 from .dependencies import get_db, require_authentication, get_current_user
 from sqlalchemy.orm import Session
-from sqlalchemy import update
 
 router = APIRouter(prefix="/users", dependencies=[Depends(require_authentication)], tags=["users"])
 

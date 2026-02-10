@@ -1,12 +1,10 @@
-import datetime
 from typing import Annotated, List, Literal
 from fastapi import APIRouter, HTTPException, status, Depends
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.security import generate_api_key
 from .dependencies import get_current_user, require_authentication, get_user_id, get_db
-from ..schemas.projects_schemas import ProjectResponse, ProjectCreate, ProjectUpdate
+from ..schemas.projects_schemas import ProjectResponse, ProjectCreate
 from ..schemas import User
 from ..models import Projects, Memberships
 from ..models.membership_model import Memberships, ProjectRole
@@ -38,7 +36,7 @@ def create_project(db: Annotated[Session, Depends(get_db)],
     db.flush()
 
     membership = Memberships(user_id=user.id,
-                             project_id=new_project.id,
+                            project_id=new_project.id,
                             role=ProjectRole.OWNER,
                             is_invited=False,
                             invited_by=None)

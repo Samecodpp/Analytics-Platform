@@ -3,13 +3,13 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
+from jose import ExpiredSignatureError, JWTError
 
 from .dependencies import get_db
 from ..schemas.auth_schemas import JWTPayload, Token, RegisterRequest
 from ..core.security import create_jwt, decode_jwt
 from app.models.users_model import Users
 from ..core.security import hash_password, verify_password, get_cookie_refresh_config
-from jose import ExpiredSignatureError, JWTError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
