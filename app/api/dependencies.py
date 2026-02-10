@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-async def get_db():
+def get_db():
     db = SessionLocal()
     try:
         yield db
@@ -32,6 +32,10 @@ def require_authentication(auth_payload: Annotated[dict, Depends(get_auth_payloa
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Could not validate credentials",
                             headers={"WWW-Authenticate": "Bearer"})
+
+def get_user_id(auth_payload: Annotated[dict, Depends(get_auth_payload)],
+                _: Annotated[None, Depends(require_authentication)]) -> int:
+    return int(auth_payload.get("sub"))
 
 def get_current_user(auth_payload: Annotated[dict, Depends(get_auth_payload)],
                      _: Annotated[None, Depends(require_authentication)],
