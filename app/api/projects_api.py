@@ -1,15 +1,17 @@
 from typing import Annotated, List, Literal
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from sqlalchemy.orm import Session
 
 from app.core.security import generate_api_key
 from .dependencies import get_current_user, require_authentication, get_user_id, get_db
-from ..schemas.projects_schemas import ProjectResponse, ProjectCreate
+from ..schemas.projects_schemas import ProjectResponse, ProjectCreate, ProjectsScope
 from ..schemas import User
 from ..models import Projects, Memberships
 from ..models.membership_model import Memberships, ProjectRole
 
-router = APIRouter(prefix="/projects", dependencies=[Depends(require_authentication)], tags=["projects"])
+router = APIRouter(prefix="/projects",
+                   dependencies=[Depends(require_authentication)],
+                   tags=["projects"])
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=ProjectResponse)
 def create_project(db: Annotated[Session, Depends(get_db)],
@@ -51,15 +53,13 @@ def create_project(db: Annotated[Session, Depends(get_db)],
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[ProjectResponse])
 def get_projects(user_id: Annotated[int, Depends(get_user_id)],
                  db: Annotated[Session, Depends(get_db)],
-                 scope: Literal["own", "member", "all"] = "all"):
+                 scope: Annotated[ProjectsScope, Query()] = ProjectsScope.ALL):
 
     query = db.query(Projects).join(Memberships).filter(Memberships.user_id == user_id)
 
-    if scope == "own":
+    if scope == ProjectsScope.OWN:
         query = query.filter(Memberships.role == ProjectRole.OWNER)
-    elif scope == "member":
+    elif scope == ProjectsScope.MEMBER:
         query = query.filter(Memberships.role != ProjectRole.OWNER)
-    else:
-        query = db.query(Projects).join(Memberships).filter(Memberships.user_id == user_id)
 
     return query.all()
