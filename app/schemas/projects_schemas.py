@@ -1,5 +1,11 @@
 from datetime import datetime
+import enum
 from pydantic import BaseModel, ConfigDict
+
+class ProjectsScope(str,enum.Enum):
+    OWN = "own"
+    MEMBER = "member"
+    ALL = "all"
 
 class ProjectBase(BaseModel):
     name: str
