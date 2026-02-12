@@ -2,7 +2,7 @@ def greet():
     """
     Greeting function
     """
-    message = "Hello from main"
+    message = "Hello from feature-a"
     return message
 
 
