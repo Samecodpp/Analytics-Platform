@@ -1,77 +1,32 @@
 from typing import Annotated
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Cookie, Depends, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from jose import ExpiredSignatureError, JWTError
 
 from .dependencies import get_db
-from ..schemas.auth_schemas import JWTPayload, Token, RegisterRequest
-from ..core.security import create_jwt, decode_jwt
-from app.models.users_model import Users
-from ..core.security import hash_password, verify_password, get_cookie_refresh_config
+from ..schemas.auth_schemas import Token, RegisterRequest
+from ..services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+auth_service = AuthService()
+
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(creds: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
-    if db.query(Users).filter(creds.email == Users.email).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="User with this e-mail already registred!")
+    auth_service.register(db, creds)
 
-    hashed_pwd = hash_password(creds.password)
-    creds_dump = creds.model_dump(exclude={"password"})
-    creds_dump["hashed_password"] = hashed_pwd
-    user = Users(**creds_dump)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
 
 @router.post("/login", status_code=status.HTTP_200_OK, response_model=Token)
 def login(creds: Annotated[OAuth2PasswordRequestForm, Depends()],
           db: Annotated[Session, Depends(get_db)], response: Response):
+    return auth_service.login(db, creds.username, creds.password, response)
 
-    user = db.query(Users).filter(
-        or_(
-            creds.username == Users.email,
-            creds.username == Users.username
-        )
-    ).first()
-
-    if not user or not verify_password(creds.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Username/password is invalid!")
-
-    acces_token_payload = JWTPayload.create_access_token(user.id).model_dump()
-    refresh_token_payload = JWTPayload.create_refresh_token(user.id).model_dump()
-
-    access_token = create_jwt(acces_token_payload)
-    refresh_token = create_jwt(refresh_token_payload)
-
-    cookie_params = get_cookie_refresh_config()
-    response.set_cookie("refresh_token", refresh_token, **cookie_params)
-    return Token(access_token=access_token)
 
 @router.delete("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response):
-    response.delete_cookie("refresh_token")
+    auth_service.logout(response)
+
 
 @router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Token)
 def refresh_token(refresh_token: Annotated[str | None, Cookie()] = None):
-    if not refresh_token:
-        raise HTTPException(status_code=401)
-
-    try:
-        body = decode_jwt(refresh_token)
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Refresh token expired")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-    if body.get('type') != "refresh":
-        raise HTTPException(status_code=401)
-
-    payload = JWTPayload.create_access_token(user_id=body['sub']).model_dump()
-    new_access_token = create_jwt(payload)
-
-    return Token(access_token=new_access_token)
+    return auth_service.refresh_access_token(refresh_token)
