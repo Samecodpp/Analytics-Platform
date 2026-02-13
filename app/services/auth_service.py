@@ -19,37 +19,36 @@ class AuthService:
         self.token_service = TokenService()
 
     def register(self, db: Session, creds: RegisterRequest) -> Users:
-        # """Register a new user with email and password.
+        """Register a new user with email and password.
 
-        # Args:
-        #     db: Database session
-        #     creds: User registration credentials (email, username, password)
+        Args:
+            db: Database session
+            creds: User registration credentials (email, username, password)
 
-        # Returns:
-        #     Created user object
+        Returns:
+            Created user object
 
-        # Raises:
-        #     HTTPException: If user with email already exists
-        # """
-        # # Check if user with this email already registered
-        # if db.query(Users).filter(creds.email == Users.email).first():
-        #     raise HTTPException(
-        #         status_code=status.HTTP_400_BAD_REQUEST,
-        #         detail="User with this e-mail already registered!",
-        #     )
+        Raises:
+            HTTPException: If user with email already exists
+        """
+        # Check if user with this email already registered
+        if db.query(Users).filter(creds.email == Users.email).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this e-mail already registered!",
+            )
 
-        # # Hash password and prepare user data
-        # hashed_pwd = hash_password(creds.password)
-        # creds_dump = creds.model_dump(exclude={"password"})
-        # creds_dump["hashed_password"] = hashed_pwd
+        # Hash password and prepare user data
+        hashed_pwd = hash_password(creds.password)
+        creds_dump = creds.model_dump(exclude={"password"})
+        creds_dump["hashed_password"] = hashed_pwd
 
-        # # Save user to database
-        # user = Users(**creds_dump)
-        # db.add(user)
-        # db.commit()
-        # db.refresh(user)
-        # return user
-        pass
+        # Save user to database
+        user = Users(**creds_dump)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
 
     def login(self, db: Session, username: str, password: str, response: Response) -> Token:
         """Authenticate user and return access token with refresh token in cookie.
