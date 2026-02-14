@@ -2,7 +2,7 @@ from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from .dependencies import get_current_user, get_project_service, require_authentication
+from ..dependencies import get_current_user, get_project_service, require_authentication
 from ..schemas.projects_schemas import ProjectResponse, ProjectCreate, ProjectsScope
 from ..schemas.user_schemas import User
 from ..services.project_service import ProjectService

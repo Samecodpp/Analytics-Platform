@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from .dependencies import get_auth_service
+from ..dependencies import get_auth_service
 from ..schemas.auth_schemas import Token, RegisterRequest
 from ..schemas.user_schemas import User
 from ..services.auth_service import AuthService

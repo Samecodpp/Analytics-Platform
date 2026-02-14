@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from .dependencies import get_current_user, get_user_service, require_authentication
+from ..dependencies import get_current_user, get_user_service, require_authentication
 from ..schemas.user_schemas import User, UserUpdate
 from ..services.user_service import UserService
 from ..core.exceptions import NotFoundError

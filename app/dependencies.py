@@ -5,15 +5,15 @@ from fastapi.security import OAuth2PasswordBearer
 from jose.exceptions import JWTError
 from sqlalchemy.orm import Session
 
-from ..core.database import SessionLocal
-from ..core.security import decode_jwt
-from ..repositories.users_repo import UserRepository
-from ..repositories.projects_repo import ProjectRepository
-from ..repositories.memberships_repo import MembershipRepository
-from ..services.auth_service import AuthService
-from ..services.token_service import TokenService
-from ..services.user_service import UserService
-from ..services.project_service import ProjectService
+from .core.database import SessionLocal
+from .core.security import decode_jwt
+from .repositories.users_repo import UserRepository
+from .repositories.projects_repo import ProjectRepository
+from .repositories.memberships_repo import MembershipRepository
+from .services.auth_service import AuthService
+from .services.token_service import TokenService
+from .services.user_service import UserService
+from .services.project_service import ProjectService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -69,7 +69,7 @@ def get_user_id(auth_payload: Annotated[dict, Depends(get_auth_payload)],
                 _: Annotated[None, Depends(require_authentication)]) -> int:
     return int(auth_payload.get("sub"))
 
-from ..core.exceptions import NotFoundError
+from .core.exceptions import NotFoundError
 
 def get_current_user(user_service: Annotated[UserService, Depends(get_user_service)],
                      auth_payload: Annotated[dict, Depends(get_auth_payload)],
