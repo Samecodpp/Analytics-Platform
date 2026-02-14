@@ -1,65 +1,32 @@
-from typing import Annotated, List, Literal
-from fastapi import APIRouter, HTTPException, status, Query, Depends
-from sqlalchemy.orm import Session
+from typing import Annotated, List
 
-from app.core.security import generate_api_key
-from .dependencies import get_current_user, require_authentication, get_user_id, get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from .dependencies import get_current_user, get_project_service, require_authentication
 from ..schemas.projects_schemas import ProjectResponse, ProjectCreate, ProjectsScope
-from ..schemas import User
-from ..models import Projects, Memberships
-from ..models.membership_model import Memberships, ProjectRole
+from ..schemas.user_schemas import User
+from ..services.project_service import ProjectService
+from ..core.exceptions import AlreadyExistsError
 
-router = APIRouter(prefix="/projects",
-                   dependencies=[Depends(require_authentication)],
-                   tags=["projects"])
+router = APIRouter(
+    prefix="/projects",
+    dependencies=[Depends(require_authentication)],
+    tags=["projects"],
+)
+
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=ProjectResponse)
-def create_project(db: Annotated[Session, Depends(get_db)],
-                   user: Annotated[User, Depends(get_current_user)],
-                   payload: ProjectCreate):
-    existing = db.query(Projects)\
-        .join(Memberships)\
-        .filter(
-            Memberships.user_id == user.id,
-            Projects.name == payload.name,
-            Memberships.role == ProjectRole.OWNER
-        ).first()
+def create_project(user: Annotated[User, Depends(get_current_user)],
+                   payload: ProjectCreate,
+                   project_service: Annotated[ProjectService, Depends(get_project_service)]):
+    try:
+        return project_service.create(user.id, payload)
+    except AlreadyExistsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
-    if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Project with this name has already exist!")
-
-    api_key = generate_api_key()
-    payload_dict = payload.model_dump()
-    payload_dict.update(api_key=api_key)
-    new_project = Projects(**payload_dict)
-
-    db.add(new_project)
-    db.flush()
-
-    membership = Memberships(user_id=user.id,
-                            project_id=new_project.id,
-                            role=ProjectRole.OWNER,
-                            is_invited=False,
-                            invited_by=None)
-
-    db.add(membership)
-    db.commit()
-
-    db.refresh(membership)
-    db.refresh(new_project)
-    return new_project
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[ProjectResponse])
-def get_projects(user_id: Annotated[int, Depends(get_user_id)],
-                 db: Annotated[Session, Depends(get_db)],
+def get_projects(user: Annotated[User, Depends(get_current_user)],
+                 project_service: Annotated[ProjectService, Depends(get_project_service)],
                  scope: Annotated[ProjectsScope, Query()] = ProjectsScope.ALL):
-
-    query = db.query(Projects).join(Memberships).filter(Memberships.user_id == user_id)
-
-    if scope == ProjectsScope.OWN:
-        query = query.filter(Memberships.role == ProjectRole.OWNER)
-    elif scope == ProjectsScope.MEMBER:
-        query = query.filter(Memberships.role != ProjectRole.OWNER)
-
-    return query.all()
+    return project_service.get_all(user.id, scope)

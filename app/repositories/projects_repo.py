@@ -14,8 +14,8 @@ class ProjectRepository(BaseRepository):
 
     def get_by_user_id(self,
                        user_id: int,
-                       project_name: str | None,
-                       role: ProjectRole | None) -> List[Projects]:
+                       project_name: str | None = None,
+                       role: str | None = None) -> List[Projects]:
         stmt = select(Projects).join(Memberships).where(Memberships.user_id == user_id)
         if project_name:
             stmt = stmt.where(Projects.name == project_name)

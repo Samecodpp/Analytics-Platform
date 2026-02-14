@@ -1,7 +1,7 @@
 from jose import ExpiredSignatureError, JWTError
 
 from ..schemas.auth_schemas import JWTPayload
-from ..core.security import create_jwt, decode_jwt, get_cookie_refresh_config
+from ..core.security import create_jwt, decode_jwt
 
 
 class TokenService:

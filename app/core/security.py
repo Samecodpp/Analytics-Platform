@@ -2,7 +2,6 @@ from pwdlib import PasswordHash
 from jose import jwt
 from .config import settings
 import secrets
-import hashlib
 
 pwd_hash = PasswordHash.recommended()
 

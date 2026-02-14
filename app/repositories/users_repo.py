@@ -1,4 +1,3 @@
-from ast import stmt
 from sqlalchemy import update, select, insert
 
 from ..models import Users
