@@ -1,8 +1,7 @@
-from fastapi import Response
 from jose import ExpiredSignatureError, JWTError
 
 from ..schemas.auth_schemas import JWTPayload
-from ..core.security import create_jwt, decode_jwt, get_cookie_refresh_config
+from ..core.security import create_jwt, decode_jwt
 
 
 class TokenService:
@@ -29,12 +28,3 @@ class TokenService:
             raise ValueError("Token is not a refresh token")
 
         return body
-
-    @staticmethod
-    def set_refresh_cookie(response: Response, token: str) -> None:
-        cookie_params = get_cookie_refresh_config()
-        response.set_cookie("refresh_token", token, **cookie_params)
-
-    @staticmethod
-    def delete_refresh_cookie(response: Response) -> None:
-        response.delete_cookie("refresh_token")
