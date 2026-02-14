@@ -3,7 +3,6 @@ from jose import ExpiredSignatureError, JWTError
 from ..schemas.auth_schemas import JWTPayload
 from ..core.security import create_jwt, decode_jwt
 
-
 class TokenService:
     @staticmethod
     def create_access_token(user_id: int | str) -> str:
