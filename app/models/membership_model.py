@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 class ProjectRole(str, enum.Enum):
     OWNER = "owner"
+    API_MASTER = "api-master"
+    ANALYST = "analyst"
     VIEWER = "viewer"
 
 class Memberships(Base):

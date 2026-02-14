@@ -12,19 +12,21 @@ class AuthService:
         self.token_service = token_service
 
     def register(self, creds: RegisterRequest) -> User:
-        if self.user_repo.get_by_email(creds.email):
-            raise AlreadyExistsError("User with this email already exists")
+        with self.user_repo:
+            if self.user_repo.get_by_email(creds.email):
+                raise AlreadyExistsError("User with this email already exists")
 
-        hashed_pwd = hash_password(creds.password)
-        creds_dump = creds.model_dump(exclude={"password"})
-        creds_dump["hashed_password"] = hashed_pwd
+            hashed_pwd = hash_password(creds.password)
+            creds_dump = creds.model_dump(exclude={"password"})
+            creds_dump["hashed_password"] = hashed_pwd
 
-        new_user = self.user_repo.create(creds_dump)
-        self.user_repo.commit()
+            new_user = self.user_repo.create(creds_dump)
+            self.user_repo.commit()
         return User.model_validate(new_user)
 
     def login(self, username: str, password: str) -> dict:
-        user = self.user_repo.get_by_email(username)
+        with self.user_repo:
+            user = self.user_repo.get_by_email(username)
 
         if not user or not verify_password(password, user.hashed_password):
             raise InvalidCredentialsError("Username/password is invalid")

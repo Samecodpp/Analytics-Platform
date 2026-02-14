@@ -67,14 +67,20 @@ def require_authentication(auth_payload: Annotated[dict, Depends(get_auth_payloa
 
 def get_user_id(auth_payload: Annotated[dict, Depends(get_auth_payload)],
                 _: Annotated[None, Depends(require_authentication)]) -> int:
-    return int(auth_payload.get("sub"))
+    sub = auth_payload.get("sub")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return int(sub)
 
 from .core.exceptions import NotFoundError
 
 def get_current_user(user_service: Annotated[UserService, Depends(get_user_service)],
                      auth_payload: Annotated[dict, Depends(get_auth_payload)],
                      _: Annotated[None, Depends(require_authentication)]):
-    user_id = int(auth_payload.get("sub"))
+    sub = auth_payload.get("sub")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user_id = int(sub)
     try:
         return user_service.get_by_id(user_id)
     except NotFoundError:
