@@ -1,4 +1,3 @@
-from fastapi import HTTPException, Response, status
 
 from ..repositories import UserRepository
 from ..schemas.auth_schemas import RegisterRequest, Token
@@ -14,9 +13,7 @@ class AuthService:
     def register(self, user_repo: UserRepository, creds: RegisterRequest) -> User:
         with user_repo:
             if user_repo.get_by_email(creds.email):
-                raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this e-mail already registered!")
+                raise "User with this email already exist"  # TODO Own exception to this
 
             hashed_pwd = hash_password(creds.password)
             creds_dump = creds.model_dump(exclude={"password"})
