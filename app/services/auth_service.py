@@ -1,32 +1,33 @@
 
 from ..repositories import UserRepository
-from ..schemas.auth_schemas import RegisterRequest, Token
+from ..schemas.auth_schemas import RegisterRequest
 from ..schemas.user_schemas import User
 from ..core.security import hash_password, verify_password
 from .token_service import TokenService
 
 
 class AuthService:
-    def __init__(self):
+    def __init__(self, user_repository: UserRepository):
+        self.user_repo = user_repository
         self.token_service = TokenService()
 
-    def register(self, user_repo: UserRepository, creds: RegisterRequest) -> User:
-        with user_repo:
-            if user_repo.get_by_email(creds.email):
+    def register(self, creds: RegisterRequest) -> User:
+        with self.user_repo:
+            if self.user_repo.get_by_email(creds.email):
                 raise "User with this email already exist" # TODO Own exception to this
 
             hashed_pwd = hash_password(creds.password)
             creds_dump = creds.model_dump(exclude={"password"})
             creds_dump["hashed_password"] = hashed_pwd
 
-            new_user = user_repo.create(creds_dump)
-            user_repo.commit()
+            new_user = self.user_repo.create(creds_dump)
+            self.user_repo.commit()
         return User.model_validate(new_user)
 
 
-    def login(self, user_repo: UserRepository, email: str, password: str) -> dict:
-        with user_repo:
-            user = user_repo.get_by_email(email)
+    def login(self, email: str, password: str) -> dict:
+        with self.user_repo:
+            user = self.user_repo.get_by_email(email)
 
         if not user or not verify_password(password, user.hashed_password):
             raise "Username/password is invalid!" # TODO Own exception to this
