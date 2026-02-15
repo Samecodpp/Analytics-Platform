@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "analytics-platform"
+version = "0.1.0"
+description = "Multi-user analytics platform built with FastAPI"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+
+dependencies = [
+    "fastapi[standard-no-fastapi-cloud-cli]",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
+    "pwdlib[argon2,bcrypt]>=0.2",
+    "python-jose[cryptography]>=3.3",
+    "alembic>=1.13",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "pytest-asyncio>=0.21",
+    "pytest-xdist>=3.5",
+    "mypy>=1.7",
+    "types-python-jose>=3.3",
+    "faker>=22.0",
+    "httpx>=0.25",
+    "pytest-mock"
+]
+
+# --- pytest ------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers --tb=short"
+markers = [
+    "unit: Unit tests (mock dependencies)",
+    "integration: Integration tests (real DB)",
+    "e2e: End-to-end tests (full workflow)",
+]
+
+# --- mypy ------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+check_untyped_defs = true
+exclude = ["tests/", ".venv/", "alembic/"]
+
+[[tool.mypy.overrides]]
+module = "alembic.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pwdlib.*"
+ignore_missing_imports = true
+
+# --- coverage ------------------------------------------------
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/.venv/*",
+    "*/__init__.py",
+    "*/alembic/*",
+    "app/models/*",
+    "app/schemas/*",
+    "app/core/config.py"
+]
+
+[tool.coverage.report]
+show_missing = true
+precision = 2
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
