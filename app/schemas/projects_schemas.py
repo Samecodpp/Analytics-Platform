@@ -2,21 +2,26 @@ from datetime import datetime
 import enum
 from pydantic import BaseModel, ConfigDict
 
-class ProjectsScope(str,enum.Enum):
+
+class ProjectsScope(str, enum.Enum):
     OWN = "own"
     MEMBER = "member"
     ALL = "all"
+
 
 class ProjectBase(BaseModel):
     name: str
     description: str | None = None
 
+
 class ProjectCreate(ProjectBase):
     pass
+
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+
 
 class ProjectResponse(ProjectBase):
     id: int

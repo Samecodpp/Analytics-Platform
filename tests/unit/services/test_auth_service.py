@@ -10,6 +10,7 @@ from app.core.exceptions import (
     InvalidTokenError,
 )
 
+
 @pytest.fixture
 def user_repo():
     mock = MagicMock()
@@ -38,12 +39,16 @@ def fake_user():
     user.created_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     return user
 
+
 class TestRegister:
     @patch("app.services.auth_service.hash_password", return_value="hashed_pw")
-    def test_register_success(self, mock_hash: Mock,
-                              auth_service: AuthService,
-                              user_repo: MagicMock,
-                              fake_user: Mock) -> None:
+    def test_register_success(
+        self,
+        mock_hash: Mock,
+        auth_service: AuthService,
+        user_repo: MagicMock,
+        fake_user: Mock,
+    ) -> None:
 
         user_repo.get_by_email.return_value = None
         user_repo.create.return_value = fake_user
@@ -70,11 +75,9 @@ class TestRegister:
         assert "hashed_password" in create_arg
         assert "password" not in create_arg
 
-    def test_register_email_already_exists(self,
-                                           auth_service: AuthService,
-                                           user_repo: MagicMock,
-                                           fake_user: Mock
-        ) -> None:
+    def test_register_email_already_exists(
+        self, auth_service: AuthService, user_repo: MagicMock, fake_user: Mock
+    ) -> None:
         user_repo.get_by_email.return_value = fake_user
 
         creds = RegisterRequest(
@@ -96,14 +99,16 @@ class TestRegister:
                 password="12345",
             )
 
+
 class TestLogin:
     @patch("app.services.auth_service.verify_password", return_value=True)
-    def test_login_success(self,
-                           mock_verify: Mock,
-                           auth_service: AuthService,
-                           user_repo: MagicMock,
-                           token_service: Mock,
-                           fake_user: Mock
+    def test_login_success(
+        self,
+        mock_verify: Mock,
+        auth_service: AuthService,
+        user_repo: MagicMock,
+        token_service: Mock,
+        fake_user: Mock,
     ) -> None:
         user_repo.get_by_email.return_value = fake_user
         token_service.create_access_token.return_value = "access_token_123"
@@ -120,20 +125,20 @@ class TestLogin:
         token_service.create_access_token.assert_called_once_with(fake_user.id)
         token_service.create_refresh_token.assert_called_once_with(fake_user.id)
 
-    def test_login_user_not_found(self,
-                                  auth_service: AuthService,
-                                  user_repo: MagicMock
+    def test_login_user_not_found(
+        self, auth_service: AuthService, user_repo: MagicMock
     ) -> None:
         user_repo.get_by_email.return_value = None
         with pytest.raises(InvalidCredentialsError, match="invalid"):
             auth_service.login("unknown@example.com", "SomePass123")
 
     @patch("app.services.auth_service.verify_password", return_value=False)
-    def test_login_wrong_password(self,
-                                  mock_verify: Mock,
-                                  auth_service: AuthService,
-                                  user_repo: MagicMock,
-                                  fake_user: Mock
+    def test_login_wrong_password(
+        self,
+        mock_verify: Mock,
+        auth_service: AuthService,
+        user_repo: MagicMock,
+        fake_user: Mock,
     ) -> None:
         user_repo.get_by_email.return_value = fake_user
 
@@ -142,10 +147,10 @@ class TestLogin:
 
         auth_service.token_service.create_access_token.assert_not_called()
 
+
 class TestRefreshAccessToken:
-    def test_refresh_success(self,
-                             auth_service: AuthService,
-                             token_service: Mock
+    def test_refresh_success(
+        self, auth_service: AuthService, token_service: Mock
     ) -> None:
         token_service.verify_refresh_token.return_value = {
             "sub": "1",
@@ -169,7 +174,9 @@ class TestRefreshAccessToken:
         with pytest.raises(InvalidTokenError, match="missing"):
             auth_service.refresh_access_token("")
 
-    def test_refresh_token_expired(self, auth_service: AuthService, token_service: Mock) -> None:
+    def test_refresh_token_expired(
+        self, auth_service: AuthService, token_service: Mock
+    ) -> None:
         token_service.verify_refresh_token.side_effect = ValueError(
             "Refresh token expired"
         )
@@ -177,7 +184,9 @@ class TestRefreshAccessToken:
         with pytest.raises(InvalidTokenError, match="expired"):
             auth_service.refresh_access_token("expired_token")
 
-    def test_refresh_token_invalid(self, auth_service: AuthService, token_service: Mock) -> None:
+    def test_refresh_token_invalid(
+        self, auth_service: AuthService, token_service: Mock
+    ) -> None:
         token_service.verify_refresh_token.side_effect = ValueError(
             "Invalid refresh token"
         )

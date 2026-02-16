@@ -20,9 +20,11 @@ def get_me(me: Annotated[User, Depends(get_current_user)]):
 
 
 @router.patch("/me", status_code=status.HTTP_200_OK, response_model=User)
-def update_me(me: Annotated[User, Depends(get_current_user)],
-              payload: UserUpdate,
-              user_service: Annotated[UserService, Depends(get_user_service)],):
+def update_me(
+    me: Annotated[User, Depends(get_current_user)],
+    payload: UserUpdate,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+):
     try:
         return user_service.update_info(me.id, payload)
     except NotFoundError as e:

@@ -4,6 +4,7 @@ from jose import ExpiredSignatureError, JWTError
 
 from app.services.token_service import TokenService
 
+
 class TestCreateAccessToken:
     @patch("app.services.token_service.create_jwt", return_value="accesstokenstr")
     @patch("app.services.token_service.JWTPayload.create_access_token")

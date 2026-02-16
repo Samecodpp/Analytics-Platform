@@ -4,11 +4,13 @@ from ..repositories.projects_repo import ProjectRepository
 from ..repositories.memberships_repo import MembershipRepository
 from ..schemas.projects_schemas import ProjectCreate, ProjectResponse, ProjectsScope
 from ..core.security import generate_api_key
-from ..core.exceptions import AlreadyExistsError
+from ..core.exceptions import AlreadyExistsError, InvalidCreateError
 
 
 class ProjectService:
-    def __init__(self, project_repo: ProjectRepository, membership_repo: MembershipRepository):
+    def __init__(
+        self, project_repo: ProjectRepository, membership_repo: MembershipRepository
+    ):
         self.project_repo = project_repo
         self.membership_repo = membership_repo
 
@@ -28,16 +30,18 @@ class ProjectService:
 
             project = self.project_repo.create(payload_dict)
             if not project:
-                raise AlreadyExistsError("Could not create project")
+                raise InvalidCreateError("Could not create project")
 
             with self.membership_repo:
-                self.membership_repo.create({
-                    "user_id": user_id,
-                    "project_id": project.id,
-                    "role": "owner",
-                    "is_invited": False,
-                    "invited_by": None,
-                })
+                self.membership_repo.create(
+                    {
+                        "user_id": user_id,
+                        "project_id": project.id,
+                        "role": "owner",
+                        "is_invited": False,
+                        "invited_by": None,
+                    }
+                )
                 self.membership_repo.commit()
 
             self.project_repo.commit()

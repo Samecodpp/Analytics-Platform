@@ -4,7 +4,7 @@ import pytest
 
 from app.services.project_service import ProjectService
 from app.schemas.projects_schemas import ProjectCreate, ProjectResponse, ProjectsScope
-from app.core.exceptions import AlreadyExistsError
+from app.core.exceptions import AlreadyExistsError, InvalidCreateError
 
 
 @pytest.fixture
@@ -85,10 +85,8 @@ class TestProjectCreate:
         project_repo: MagicMock,
         membership_repo: MagicMock,
         project_service: ProjectService,
-        fake_project: Mock,
     ) -> None:
         project_repo.get_by_user_id.return_value = fake_project
-
         payload = ProjectCreate(name="Test Project", description="Test Description")
 
         with pytest.raises(AlreadyExistsError, match="already exists"):
@@ -96,6 +94,30 @@ class TestProjectCreate:
         mock_gen_api_key.assert_not_called()
         project_repo.create.assert_not_called()
         membership_repo.create.assert_not_called()
+
+    @patch(
+        "app.services.project_service.generate_api_key", return_value="test_api_key_123"
+    )
+    def test_create_invalid(
+        self,
+        mock_gen_api_key: Mock,
+        project_repo: MagicMock,
+        membership_repo: MagicMock,
+        project_service: ProjectService,
+        fake_project: Mock,
+    ):
+        project_repo.get_by_user_id.return_value = None
+        project_repo.create.return_value = None
+        payload = ProjectCreate(name="Test Project", description="Test Description")
+
+        with pytest.raises(InvalidCreateError, match="not create"):
+            project_service.create(user_id=1, payload=payload)
+        mock_gen_api_key.assert_called_once()
+        project_repo.get_by_user_id.assert_called_once()
+        project_repo.create.assert_called_once()
+        membership_repo.create.assert_not_called()
+        membership_repo.commit.assert_not_called()
+        project_repo.commit.assert_not_called()
 
 
 class TestProjectGetAll:

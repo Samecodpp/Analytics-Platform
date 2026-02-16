@@ -9,6 +9,7 @@ app.include_router(projects_api.router)
 
 database.Base.metadata.create_all(bind=database.engine)
 
+
 @app.get("/")
 def root():
     return {"message": "Hello World"}

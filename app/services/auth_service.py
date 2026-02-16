@@ -2,7 +2,11 @@ from ..repositories.users_repo import UserRepository
 from ..schemas.auth_schemas import RegisterRequest
 from ..schemas.user_schemas import User
 from ..core.security import hash_password, verify_password
-from ..core.exceptions import AlreadyExistsError, InvalidCredentialsError, InvalidTokenError
+from ..core.exceptions import (
+    AlreadyExistsError,
+    InvalidCredentialsError,
+    InvalidTokenError,
+)
 from .token_service import TokenService
 
 

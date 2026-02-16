@@ -17,6 +17,7 @@ from .services.project_service import ProjectService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -24,27 +25,43 @@ def get_db():
     finally:
         db.close()
 
+
 def get_user_repository(db: Annotated[Session, Depends(get_db)]) -> UserRepository:
     return UserRepository(db)
 
 
-def get_project_repository(db: Annotated[Session, Depends(get_db)]) -> ProjectRepository:
+def get_project_repository(
+    db: Annotated[Session, Depends(get_db)],
+) -> ProjectRepository:
     return ProjectRepository(db)
 
 
-def get_membership_repository(db: Annotated[Session, Depends(get_db)]) -> MembershipRepository:
+def get_membership_repository(
+    db: Annotated[Session, Depends(get_db)],
+) -> MembershipRepository:
     return MembershipRepository(db)
 
-def get_auth_service(user_repo: Annotated[UserRepository, Depends(get_user_repository)]) -> AuthService:
+
+def get_auth_service(
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+) -> AuthService:
     return AuthService(user_repo, TokenService())
 
 
-def get_user_service(user_repo: Annotated[UserRepository, Depends(get_user_repository)]) -> UserService:
+def get_user_service(
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+) -> UserService:
     return UserService(user_repo)
 
-def get_project_service(project_repo: Annotated[ProjectRepository, Depends(get_project_repository)],
-                        membership_repo: Annotated[MembershipRepository, Depends(get_membership_repository)]) -> ProjectService:
+
+def get_project_service(
+    project_repo: Annotated[ProjectRepository, Depends(get_project_repository)],
+    membership_repo: Annotated[
+        MembershipRepository, Depends(get_membership_repository)
+    ],
+) -> ProjectService:
     return ProjectService(project_repo, membership_repo)
+
 
 def get_auth_payload(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
     try:
@@ -57,7 +74,10 @@ def get_auth_payload(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
         )
     return body
 
-def require_authentication(auth_payload: Annotated[dict, Depends(get_auth_payload)]) -> None:
+
+def require_authentication(
+    auth_payload: Annotated[dict, Depends(get_auth_payload)],
+) -> None:
     if not auth_payload.get("sub") or auth_payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -65,23 +85,36 @@ def require_authentication(auth_payload: Annotated[dict, Depends(get_auth_payloa
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-def get_user_id(auth_payload: Annotated[dict, Depends(get_auth_payload)],
-                _: Annotated[None, Depends(require_authentication)]) -> int:
+
+def get_user_id(
+    auth_payload: Annotated[dict, Depends(get_auth_payload)],
+    _: Annotated[None, Depends(require_authentication)],
+) -> int:
     sub = auth_payload.get("sub")
     if not sub:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
     return int(sub)
+
 
 from .core.exceptions import NotFoundError
 
-def get_current_user(user_service: Annotated[UserService, Depends(get_user_service)],
-                     auth_payload: Annotated[dict, Depends(get_auth_payload)],
-                     _: Annotated[None, Depends(require_authentication)]):
+
+def get_current_user(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    auth_payload: Annotated[dict, Depends(get_auth_payload)],
+    _: Annotated[None, Depends(require_authentication)],
+):
     sub = auth_payload.get("sub")
     if not sub:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
     user_id = int(sub)
     try:
         return user_service.get_by_id(user_id)
     except NotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )

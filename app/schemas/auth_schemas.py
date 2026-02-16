@@ -5,6 +5,7 @@ from pydantic import UUID4, BaseModel, EmailStr, model_serializer, field_validat
 
 from ..core.config import settings
 
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     username: str
@@ -16,6 +17,7 @@ class RegisterRequest(BaseModel):
         if len(pwd) < 8:
             raise ValueError("Password must be at least 8 characters long")
         return pwd
+
 
 class JWTPayload(BaseModel):
     sub: str
@@ -32,7 +34,7 @@ class JWTPayload(BaseModel):
             sub=str(user_id),
             type="access",
             iat=now,
-            exp=now+timedelta(seconds=settings.ACCESS_TOKEN_EXPIRE_SECONDS)
+            exp=now + timedelta(seconds=settings.ACCESS_TOKEN_EXPIRE_SECONDS),
         )
 
     @classmethod
@@ -42,8 +44,8 @@ class JWTPayload(BaseModel):
             sub=str(user_id),
             type="refresh",
             iat=now,
-            exp=now+timedelta(seconds=settings.REFRESH_TOKEN_EXPIRE_SECONDS),
-            jti=uuid4()
+            exp=now + timedelta(seconds=settings.REFRESH_TOKEN_EXPIRE_SECONDS),
+            jti=uuid4(),
         )
 
     @model_serializer
@@ -64,4 +66,3 @@ class JWTPayload(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
-

@@ -3,6 +3,7 @@ from sqlalchemy import insert
 from ..models import Memberships
 from .base_repo import BaseRepository
 
+
 class MembershipRepository(BaseRepository):
     def create(self, fields: dict) -> Memberships | None:
         stmt = insert(Memberships).values(**fields).returning(Memberships)

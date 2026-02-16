@@ -7,6 +7,7 @@ from typing import List, TYPE_CHECKING
 if TYPE_CHECKING:
     from .membership_model import Memberships
 
+
 class Users(Base):
     __tablename__ = "user"
 
@@ -16,13 +17,15 @@ class Users(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
 
     memberships: Mapped[List["Memberships"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         foreign_keys="Memberships.user_id",
-        lazy="selectin"
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:

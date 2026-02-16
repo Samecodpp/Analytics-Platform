@@ -16,9 +16,11 @@ router = APIRouter(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=ProjectResponse)
-def create_project(user: Annotated[User, Depends(get_current_user)],
-                   payload: ProjectCreate,
-                   project_service: Annotated[ProjectService, Depends(get_project_service)]):
+def create_project(
+    user: Annotated[User, Depends(get_current_user)],
+    payload: ProjectCreate,
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
+):
     try:
         return project_service.create(user.id, payload)
     except AlreadyExistsError as e:
@@ -26,7 +28,9 @@ def create_project(user: Annotated[User, Depends(get_current_user)],
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[ProjectResponse])
-def get_projects(user: Annotated[User, Depends(get_current_user)],
-                 project_service: Annotated[ProjectService, Depends(get_project_service)],
-                 scope: Annotated[ProjectsScope, Query()] = ProjectsScope.ALL):
+def get_projects(
+    user: Annotated[User, Depends(get_current_user)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
+    scope: Annotated[ProjectsScope, Query()] = ProjectsScope.ALL,
+):
     return project_service.get_all(user.id, scope)

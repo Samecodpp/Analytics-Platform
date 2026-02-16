@@ -1,0 +1,61 @@
+Metadata-Version: 2.4
+Name: analytics-platform
+Version: 0.1.0
+Summary: Multi-user analytics platform built with FastAPI
+License-Expression: MIT
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi[standard-no-fastapi-cloud-cli]
+Requires-Dist: pydantic>=2.0
+Requires-Dist: pydantic-settings>=2.0
+Requires-Dist: sqlalchemy>=2.0
+Requires-Dist: psycopg2-binary>=2.9
+Requires-Dist: pwdlib[argon2,bcrypt]>=0.2
+Requires-Dist: python-jose[cryptography]>=3.3
+Requires-Dist: alembic>=1.13
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21; extra == "dev"
+Requires-Dist: pytest-xdist>=3.5; extra == "dev"
+Requires-Dist: mypy>=1.7; extra == "dev"
+Requires-Dist: types-python-jose>=3.3; extra == "dev"
+Requires-Dist: faker>=22.0; extra == "dev"
+Requires-Dist: httpx>=0.25; extra == "dev"
+Requires-Dist: pytest-mock; extra == "dev"
+Requires-Dist: black; extra == "dev"
+
+# Analytics Platform
+
+## Description
+A web platform for project management with multi-user access support.
+
+## MVP
+- User registration and login with JWT authentication
+- User and role management
+- Project creation and management
+- Team member management
+- Get metrics from client applications
+
+## Getting Started
+
+### Requirements
+- Python 3.8+
+- PostgreSQL 12+
+
+### Installation
+1. Clone the repository and navigate to the folder
+2. Create a virtual environment: `python -m venv .venv`
+3. Activate it: `.venv\Scripts\activate` (Windows) or `source .venv/bin/activate` (Linux/Mac)
+4. Install dependencies: `pip install -r requirements.txt`
+5. Configure .env file with DATABASE_URL and SECRET_KEY
+
+### Running the Server
+```bash
+uvicorn app.main:app --reload
+```
+
+API access: http://localhost:8000/docs
+
+## Tech Stack
+FastAPI, SQLAlchemy, PostgreSQL, JWT, Pydantic
