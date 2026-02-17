@@ -33,7 +33,7 @@ class AuthService:
             user = self.user_repo.get_by_email(username)
 
         if not user or not verify_password(password, user.hashed_password):
-            raise InvalidCredentialsError("Username/password is invalid")
+            raise InvalidCredentialsError("Invalid credentials")
 
         access_token = self.token_service.create_access_token(user.id)
         refresh_token = self.token_service.create_refresh_token(user.id)
