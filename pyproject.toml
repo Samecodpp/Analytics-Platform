@@ -46,9 +46,9 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --strict-markers --tb=short"
 markers = [
-    "unit: Unit tests (mock dependencies)",
-    "integration: Integration tests (real DB)",
-    "e2e: End-to-end tests (full workflow)",
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
 ]
 
 # --- mypy ------------------------------------------------
@@ -77,7 +77,6 @@ omit = [
     "*/__init__.py",
     "*/alembic/*",
     "app/models/*",
-    "app/schemas/*",
     "app/core/config.py"
 ]
 
