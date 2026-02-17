@@ -1,187 +1,171 @@
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, Mock, patch, call
 import pytest
+from pytest_mock import MockerFixture
 
+from tests.fakes.fake_project_repo import FakeProjectRepo
+from tests.fakes.fake_membership_repo import FakeMembershipRepo
+from tests.factories import make_project
 from app.services.project_service import ProjectService
 from app.schemas.projects_schemas import ProjectCreate, ProjectResponse, ProjectsScope
 from app.core.exceptions import AlreadyExistsError, InvalidCreateError
 
 
 @pytest.fixture
-def project_repo():
-    return MagicMock()
+def shared_memberships():
+    return []
 
 
 @pytest.fixture
-def membership_repo():
-    return MagicMock()
+def project_repo(shared_memberships):
+    return FakeProjectRepo(membership_store=shared_memberships)
+
+
+@pytest.fixture
+def membership_repo(shared_memberships):
+    return FakeMembershipRepo(membership_store=shared_memberships)
 
 
 @pytest.fixture
 def project_service(project_repo, membership_repo):
     return ProjectService(project_repo, membership_repo)
 
-
-@pytest.fixture
-def fake_project():
-    project = Mock()
-    project.id = 1
-    project.name = "Test Project"
-    project.description = "Test Description"
-    project.api_key = "test_api_key_123"
-    project.created_at = datetime(2026, 2, 1, tzinfo=timezone.utc)
-    return project
-
-
-@pytest.fixture
-def fake_member_project():
-    """Проект, де поточний користувач — viewer, а не owner."""
-    project = Mock()
-    project.id = 10
-    project.name = "Shared Analytics"
-    project.description = "Shared with me"
-    project.api_key = "member_api_key_456"
-    project.created_at = datetime(2026, 2, 10, tzinfo=timezone.utc)
-    return project
-
-
+@pytest.mark.unit
 class TestProjectCreate:
-    @patch(
-        "app.services.project_service.generate_api_key", return_value="test_api_key_123"
-    )
     def test_create_success(
         self,
-        mock_gen_api_key: Mock,
-        project_repo: MagicMock,
-        membership_repo: MagicMock,
+        project_repo: FakeProjectRepo,
+        membership_repo: FakeMembershipRepo,
         project_service: ProjectService,
-        fake_project: Mock,
-    ) -> None:
-        project_repo.get_by_user_id.return_value = None
-        project_repo.create.return_value = fake_project
+        mocker: MockerFixture,
+    ):
+        spy_proj_commit = mocker.spy(project_repo, "commit")
+        spy_memb_commit = mocker.spy(membership_repo, "commit")
         payload = ProjectCreate(name="Test Project", description="Test Description")
 
         result = project_service.create(user_id=1, payload=payload)
 
         assert isinstance(result, ProjectResponse)
-        assert result.id == 1
         assert result.name == "Test Project"
-        assert result.api_key == "test_api_key_123"
-        project_repo.get_by_user_id.assert_called_once_with(
-            user_id=1, project_name="Test Project", role="owner"
-        )
-        mock_gen_api_key.assert_called_once()
-        project_repo.create.assert_called_once()
-        membership_repo.create.assert_called_once()
-        membership_repo.commit.assert_called_once()
-        project_repo.commit.assert_called_once()
+        assert result.description == "Test Description"
+        assert result.api_key is not None
+        assert len(result.api_key) > 10
 
-    @patch(
-        "app.services.project_service.generate_api_key", return_value="test_api_key_123"
-    )
-    def test_create_already_exists(
+        memberships = membership_repo.get_by_project_id(result.id)
+        assert len(memberships) == 1
+        assert memberships[0].user_id == 1
+        assert memberships[0].role == "owner"
+        spy_proj_commit.assert_called_once()
+        spy_memb_commit.assert_called_once()
+
+    def test_create_duplicate_name(
         self,
-        mock_gen_api_key: Mock,
-        project_repo: MagicMock,
-        membership_repo: MagicMock,
+        project_repo: FakeProjectRepo,
         project_service: ProjectService,
-    ) -> None:
-        project_repo.get_by_user_id.return_value = fake_project
-        payload = ProjectCreate(name="Test Project", description="Test Description")
+    ):
+        project_service.create(
+            user_id=1, payload=ProjectCreate(name="Duplicate", description="First")
+        )
 
         with pytest.raises(AlreadyExistsError, match="already exists"):
-            project_service.create(user_id=1, payload=payload)
-        mock_gen_api_key.assert_not_called()
-        project_repo.create.assert_not_called()
-        membership_repo.create.assert_not_called()
+            project_service.create(
+                user_id=1, payload=ProjectCreate(name="Duplicate", description="Second")
+            )
 
-    @patch(
-        "app.services.project_service.generate_api_key", return_value="test_api_key_123"
-    )
     def test_create_invalid(
         self,
-        mock_gen_api_key: Mock,
-        project_repo: MagicMock,
-        membership_repo: MagicMock,
+        project_repo: FakeProjectRepo,
         project_service: ProjectService,
-        fake_project: Mock,
+        mocker: MockerFixture,
     ):
-        project_repo.get_by_user_id.return_value = None
-        project_repo.create.return_value = None
-        payload = ProjectCreate(name="Test Project", description="Test Description")
+        mocker.patch.object(project_repo, "create", return_value=None)
 
-        with pytest.raises(InvalidCreateError, match="not create"):
-            project_service.create(user_id=1, payload=payload)
-        mock_gen_api_key.assert_called_once()
-        project_repo.get_by_user_id.assert_called_once()
-        project_repo.create.assert_called_once()
-        membership_repo.create.assert_not_called()
-        membership_repo.commit.assert_not_called()
-        project_repo.commit.assert_not_called()
+        with pytest.raises(InvalidCreateError, match="Could not create project"):
+            project_service.create(
+                user_id=1, payload=ProjectCreate(name="Broken", description="Fail")
+            )
 
-
-class TestProjectGetAll:
-    def test_get_all_own_projects(
+    def test_create_same_name_different_user(
         self,
-        project_repo: MagicMock,
-        membership_repo: MagicMock,
+        project_repo: FakeProjectRepo,
         project_service: ProjectService,
-        fake_project: Mock,
-    ) -> None:
-        project_repo.get_by_user_id.return_value = [fake_project]
+    ):
+        result1 = project_service.create(
+            user_id=1, payload=ProjectCreate(name="Analytics", description="User 1")
+        )
+        result2 = project_service.create(
+            user_id=2, payload=ProjectCreate(name="Analytics", description="User 2")
+        )
+
+        assert result1.name == result2.name
+        assert result1.id != result2.id
+
+@pytest.mark.unit
+class TestProjectGetAll:
+    def _create_project_with_membership(
+        self,
+        project_repo: FakeProjectRepo,
+        user_id: int,
+        role: str,
+        **project_overrides,
+    ):
+        project = make_project(**project_overrides)
+        project_repo._projects[project.id] = project
+        project_repo.add_membership(user_id=user_id, project_id=project.id, role=role)
+        return project
+
+    def test_get_own(
+        self,
+        project_repo: FakeProjectRepo,
+        project_service: ProjectService,
+    ):
+        own = self._create_project_with_membership(
+            project_repo, user_id=1, role="owner", name="My Project"
+        )
+        self._create_project_with_membership(
+            project_repo, user_id=1, role="viewer", name="Shared Project"
+        )
 
         result = project_service.get_all(user_id=1, scope=ProjectsScope.OWN)
 
         assert len(result) == 1
-        assert result[0].id == 1
-        assert result[0].name == "Test Project"
-        project_repo.get_by_user_id.assert_called_once_with(
-            user_id=1, project_name=None, role="owner"
-        )
+        assert result[0].name == "My Project"
 
-    def test_get_all_member_projects(
+    def test_get_member(
         self,
-        project_repo: MagicMock,
-        membership_repo: MagicMock,
+        project_repo: FakeProjectRepo,
         project_service: ProjectService,
-        fake_member_project: Mock,
-    ) -> None:
-        project_repo.get_by_user_id.return_value = [fake_member_project]
+    ):
+        self._create_project_with_membership(
+            project_repo, user_id=1, role="owner", name="My Project"
+        )
+        shared = self._create_project_with_membership(
+            project_repo, user_id=1, role="viewer", name="Shared Project"
+        )
 
         result = project_service.get_all(user_id=1, scope=ProjectsScope.MEMBER)
 
         assert len(result) == 1
-        assert result[0].id != 1
-        assert result[0].id == fake_member_project.id
-        assert result[0].name == "Shared Analytics"
-        project_repo.get_by_user_id.assert_called_once_with(
-            user_id=1, project_name=None, role="viewer"
+        assert result[0].name == "Shared Project"
+
+    def test_get_all(
+        self,
+        project_repo: FakeProjectRepo,
+        project_service: ProjectService
+    ):
+        self._create_project_with_membership(
+            project_repo, user_id=1, role="owner", name="My Project"
+        )
+        shared = self._create_project_with_membership(
+            project_repo, user_id=1, role="viewer", name="Shared Project"
         )
 
-    def test_member_scope_does_not_return_own_projects(
-        self,
-        project_repo: MagicMock,
-        membership_repo: MagicMock,
-        project_service: ProjectService,
-    ) -> None:
-        """Scope MEMBER фільтрує по role='viewer', а не 'owner'."""
-        project_repo.get_by_user_id.return_value = []
+        result = project_service.get_all(user_id=1, scope=ProjectsScope.ALL)
+        names = [project.name for project in result]
 
-        project_service.get_all(user_id=1, scope=ProjectsScope.MEMBER)
+        assert len(result) == 2
+        assert "My Project" in names
+        assert "Shared Project" in names
 
-        call_kwargs = project_repo.get_by_user_id.call_args
-        assert call_kwargs.kwargs["role"] == "viewer"
-        assert call_kwargs.kwargs["role"] != "owner"
-
-    def test_get_all_empty(
-        self,
-        project_repo: MagicMock,
-        membership_repo: MagicMock,
-        project_service: ProjectService,
-    ) -> None:
-        project_repo.get_by_user_id.return_value = []
-
+    def test_get_all_empty(self, project_service: ProjectService):
         result = project_service.get_all(user_id=404, scope=ProjectsScope.OWN)
 
         assert result == []
-        project_repo.get_by_user_id.assert_called_once()
