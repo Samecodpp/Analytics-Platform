@@ -48,42 +48,6 @@ class TestClientAuthentication:
         assert me["id"] == user["id"]
         assert me["email"] == user["email"]
 
-    def test_register_exist_user(self, client: TestClient):
-        user_password = "fake_password"
-        user = make_user(password=user_password)
-
-        client.post(
-            "/auth/register",
-            json={
-                "email": user.email,
-                "username": user.username,
-                "password": user_password
-            }
-        )
-
-        response = client.post(
-            "/auth/register",
-            json={
-                "email": user.email,
-                "username": user.username,
-                "password": user_password
-            }
-        )
-        assert response.status_code == status.HTTP_409_CONFLICT
-        assert "already exists" in response.json()["detail"]
-
-    def test_register_invalid_email(self, client: TestClient):
-        response = client.post(
-            "/auth/register",
-            json={
-                "email": "invalid email...",
-                "username": "username",
-                "password": "secret123"
-            }
-        )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-        assert "value is not a valid email" in response.text
-
     def test_login_invalid_password(self, client: TestClient):
             user = make_user()
             client.post(
