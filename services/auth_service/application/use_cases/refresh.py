@@ -25,8 +25,8 @@ class RefreshUseCase:
         new_refresh_result = self._jwt_manager.create_refresh_token(sub)
 
         async with self._transaction as tx:
-            tx.refresh_token.revoke_by_id(jti)
-            tx.refresh_token.create(
+            await tx.refresh_token.revoke_by_id(jti)
+            await tx.refresh_token.create(
                 RefreshToken(
                     id=new_refresh_result.jti,
                     creds_id=sub,
