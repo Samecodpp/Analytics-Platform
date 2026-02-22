@@ -1,0 +1,11 @@
+fastapi[standard-no-fastapi-cloud-cli]
+uvicorn[standard]
+sqlalchemy[asyncio]
+asyncpg
+pydantic
+pydantic-settings
+pwdlib[argon2,bcrypt]
+python-multipart
+python-dotenv
+python-jose[cryptography]
+mypy
