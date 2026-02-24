@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import Index, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..core.database import Base
+from ....shared.core.database import Base
 
 if TYPE_CHECKING:
     from .refresh_tokens_model import RefreshTokenModel

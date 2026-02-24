@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from services.auth_service.infrastructure.models import *
-from services.auth_service.infrastructure.core.database import Base
-from services.auth_service.infrastructure.core import settings
+from services.shared.core.database import Base
+from services.shared.core.settings import get_settings
 
 config = context.config
 
@@ -18,7 +18,7 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-config.set_main_option("sqlalchemy.url", settings.get_settings().DATABASE_URL)
+config.set_main_option("sqlalchemy.url", get_settings().DATABASE_URL)
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")

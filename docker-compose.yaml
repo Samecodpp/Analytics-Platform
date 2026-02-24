@@ -17,12 +17,8 @@ services:
 
   app:
     build: ./services/
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - SECRET_KEY=${SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
-      - ACCESS_TOKEN_EXPIRE_SECONDS=${ACCESS_TOKEN_EXPIRE_SECONDS}
-      - REFRESH_TOKEN_EXPIRE_SECONDS=${REFRESH_TOKEN_EXPIRE_SECONDS}
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     depends_on:

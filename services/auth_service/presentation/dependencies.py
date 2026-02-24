@@ -1,8 +1,8 @@
 from typing import Annotated
 from fastapi import Depends
 
-from ..infrastructure.core.settings import get_settings
-from ..infrastructure.core.database import create_engine, create_session_factory
+from ...shared.core.settings import get_settings
+from ...shared.core.database import create_engine, create_session_factory
 from ..application.use_cases import (
     RegisterUseCase,
     LoginUseCase,
@@ -11,6 +11,8 @@ from ..application.use_cases import (
 )
 from ..infrastructure.repositories import SQLAlchemyTransaction
 from ..infrastructure.security import PwdHasher, JWTManager
+
+from ...shared.broker.bus.event_bus_impl import event_bus
 
 _engine = None
 _session_factory = None
@@ -55,7 +57,7 @@ def get_register_use_case(
     transaction: Annotated[SQLAlchemyTransaction, Depends(get_transaction)],
     hasher: Annotated[PwdHasher, Depends(get_hasher)]
 ) -> RegisterUseCase:
-    return RegisterUseCase(transaction, hasher)
+    return RegisterUseCase(transaction, hasher, event_bus)
 
 
 def get_login_use_case(

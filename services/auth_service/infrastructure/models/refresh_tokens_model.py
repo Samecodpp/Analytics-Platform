@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ..core.database import Base
+from ....shared.core.database import Base
 
 if TYPE_CHECKING:
     from .credentials_model import CredentialsModel
