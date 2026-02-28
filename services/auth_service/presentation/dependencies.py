@@ -1,45 +1,23 @@
 from typing import Annotated
 from fastapi import Depends
 
-from ...shared.core.settings import get_settings
-from ...shared.core.database import create_engine, create_session_factory
 from ..application.use_cases import (
     RegisterUseCase,
     LoginUseCase,
     LogoutUseCase,
     RefreshUseCase
 )
+from ..infrastructure.core.database import get_session_factory, async_sessionmaker
+from ..infrastructure.core.settings import get_settings, Settings
 from ..infrastructure.repositories import SQLAlchemyTransaction
 from ..infrastructure.security import PwdHasher, JWTManager
-
-from ...shared.broker.bus.event_bus_impl import event_bus
-
-_engine = None
-_session_factory = None
-
-
-def _get_engine():
-    global _engine
-    if _engine is None:
-        settings = get_settings()
-        _engine = create_engine(settings)
-    return _engine
-
-
-def _get_session_factory():
-    global _session_factory
-    if _session_factory is None:
-        engine = _get_engine()
-        _session_factory = create_session_factory(engine)
-    return _session_factory
 
 
 def get_hasher() -> PwdHasher:
     return PwdHasher()
 
 
-def get_jwt_manager() -> JWTManager:
-    settings = get_settings()
+def get_jwt_manager(settings: Annotated[Settings, Depends(get_settings)]) -> JWTManager:
     return JWTManager(
         settings.SECRET_KEY,
         settings.ALGORITHM,
@@ -48,8 +26,9 @@ def get_jwt_manager() -> JWTManager:
     )
 
 
-def get_transaction() -> SQLAlchemyTransaction:
-    session_factory = _get_session_factory()
+def get_transaction(
+    session_factory: Annotated[async_sessionmaker, Depends(get_session_factory)]
+) -> SQLAlchemyTransaction:
     return SQLAlchemyTransaction(session_factory)
 
 
@@ -57,7 +36,7 @@ def get_register_use_case(
     transaction: Annotated[SQLAlchemyTransaction, Depends(get_transaction)],
     hasher: Annotated[PwdHasher, Depends(get_hasher)]
 ) -> RegisterUseCase:
-    return RegisterUseCase(transaction, hasher, event_bus)
+    return RegisterUseCase(transaction, hasher)
 
 
 def get_login_use_case(

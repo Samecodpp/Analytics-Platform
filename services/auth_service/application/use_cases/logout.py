@@ -1,11 +1,14 @@
-from ...domain.interfaces.jwt_manager import IJWTManager
-from ...domain.interfaces.transaction import ITransaction
+from ...domain.interfaces import IJWTManager, ITransaction
 from ..dto import LogoutInput
 from ..exceptions import InvalidTokenError
 
 
 class LogoutUseCase:
-    def __init__(self, transaction: ITransaction, jwt_manager: IJWTManager):
+    def __init__(
+        self,
+        transaction: ITransaction,
+        jwt_manager: IJWTManager
+    ):
         self._transaction = transaction
         self._jwt_manager = jwt_manager
 
@@ -17,4 +20,5 @@ class LogoutUseCase:
 
         async with self._transaction as tx:
             await tx.refresh_token.revoke_by_id(payload["jti"])
+
 

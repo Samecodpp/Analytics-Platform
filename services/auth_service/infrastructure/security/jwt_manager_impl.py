@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timezone
 from uuid import UUID
-from jose import jwt
+import jwt
 
 from ...domain.interfaces import IJWTManager
 from ...domain.value_objects import JWTPayload, JWTResult
@@ -21,7 +21,7 @@ class JWTManager(IJWTManager):
             exp=int(time.time()) + self._access_timelife
         ).to_dict()
 
-        return jwt.encode(payload_dict, self._secret, self._algorithm)
+        return jwt.encode(payload_dict, self._secret, algorithm=self._algorithm)
 
     def create_refresh_token(self, sub: UUID) -> JWTResult:
         payload = JWTPayload(
@@ -29,7 +29,7 @@ class JWTManager(IJWTManager):
             type="refresh",
             exp=int(time.time()) + self._refresh_timelife
         )
-        token = jwt.encode(payload.to_dict(), self._secret, self._algorithm)
+        token = jwt.encode(payload.to_dict(), self._secret, algorithm=self._algorithm)
 
         return JWTResult(
             token=token,
@@ -38,5 +38,4 @@ class JWTManager(IJWTManager):
         )
 
     def verify(self, token: str) -> dict:
-        return jwt.decode(token, self._secret, self._algorithm)
-
+        return jwt.decode(token, self._secret, algorithms=[self._algorithm])

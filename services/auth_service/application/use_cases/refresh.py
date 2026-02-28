@@ -4,7 +4,11 @@ from ..dto import RefreshInput, RefreshOutput
 from ..exceptions import InvalidTokenError
 
 class RefreshUseCase:
-    def __init__(self, transaction: ITransaction, jwt_manager: IJWTManager):
+    def __init__(
+        self,
+        transaction: ITransaction,
+        jwt_manager: IJWTManager,
+    ):
         self._transaction = transaction
         self._jwt_manager = jwt_manager
 

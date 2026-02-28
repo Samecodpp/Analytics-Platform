@@ -8,3 +8,4 @@ venv/
 drawio_diagrams/
 .coverage
 htmlcov/
+postgres-init/
